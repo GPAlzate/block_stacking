@@ -13,17 +13,17 @@ public class BlockStacking {
     int n;
 
     /** stores all the different types of blocks and their rotations */
-    ArrayList<ArrayList<Integer>> blocks;
+    ArrayList<Block> blocks;
 
     /**
      * dp table where heightsDP(i) is the maximum block stacking height if we
      * use base i
      */
-    HashMap<ArrayList<Integer>, Integer> heightsDP;
+    HashMap<Block, Integer> heightsDP;
 
     public BlockStacking(File input) {
-        blocks = new ArrayList<ArrayList<Integer>>();
-        heightsDP = new HashMap<ArrayList<Integer>, Integer>();
+        blocks = new ArrayList<Block>();
+        heightsDP = new HashMap<Block, Integer>();
         generate(input);
     }
 
@@ -47,7 +47,7 @@ public class BlockStacking {
             n = Integer.parseInt(sc.next());
 
             // holds the block dimensions
-            ArrayList<Integer> block;
+            ArrayList<Integer> dims;
 
             // the line from the file that holds block timensions
             String[] line;
@@ -56,35 +56,34 @@ public class BlockStacking {
             while (sc.hasNext()) {
 
                 // create block with dimensions l * w * h
-                block = new ArrayList<Integer>(3);
+                dims = new ArrayList<Integer>(3);
                 line = sc.next().split("\\s");
                 for(String s : line)
-                    block.add(Integer.parseInt(s));
+                    dims.add(Integer.parseInt(s));
 
                 // smallest dimension of the block goes first for easy comparison
                 // later
-                Collections.sort(block);
+                Collections.sort(dims);
                 
                 // put all rotations of block, assigning initial stack height to
                 // its own height
-                heightsDP.put(new ArrayList<> (block), block.get(2));
+                Block block = new Block(dims);
+                heightsDP.put(block, block.getHeight());
 
-                block.add(1, block.remove(2));
-                heightsDP.put(new ArrayList<> (block), block.get(2));
+                dims.add(1, dims.remove(2));
+                block = new Block(dims);
+                heightsDP.put(block, block.getHeight());
 
-                block.add(0, block.remove(2));
-                block.add(1, block.remove(2));
-                heightsDP.put(new ArrayList<> (block), block.get(2));
+                dims.add(0, dims.remove(2));
+                dims.add(1, dims.remove(2));
+                block = new Block(dims);
+                heightsDP.put(block, block.getHeight());
 
             }
 
             // create the sorted list of blocks
-            blocks = new ArrayList<ArrayList<Integer>>(heightsDP.keySet());
-            Collections.sort(blocks, new Comparator<ArrayList<Integer>>(){
-                    public int compare(ArrayList<Integer> a, ArrayList<Integer> b){
-                        return a.get(0) - b.get(0);
-                    }
-                });
+            blocks = new ArrayList<Block>(heightsDP.keySet());
+            Collections.sort(blocks, new Block.sortByD1());
 
 
         } catch (FileNotFoundException e) {
@@ -92,25 +91,23 @@ public class BlockStacking {
         }
     }
 
+  
     private int stackBlocks(){
-
-        // base case, 1 block in stack has max height of itself
-        // heightsDP.put(blocks.get(0), blocks.get(0).get(2));
 
         // vbls to save lists: `base` holds the working base block, while
         // `current` holds the blocks we're stacking on top of the base
-        ArrayList<Integer> base = null, current = null;
+        Block base = null, current = null;
 
         // saves the maximum stack height
         int globalMax = -1;
 
-        for(int i = 1; i < blocks.size(); i++){
+        for(int i = 0; i < blocks.size(); i++){
 
             // iterate through the blocks if we were to use them as the base
             base = blocks.get(i);
 
             // height of current base
-            int baseHeight = base.get(2);
+            int baseHeight = base.getHeight();
 
             // calculate maximum height using the current base
             int localMax = baseHeight;
@@ -120,8 +117,8 @@ public class BlockStacking {
                 current = blocks.get(j);
 
                 // can only place if length & width are smaller than those of base
-                if(current.get(0) < base.get(0) && 
-                        current.get(1) < base.get(1)){
+                if(current.getD1() < base.getD1() && 
+                        current.getD2() < base.getD2()){
 
                     // stack the substacks onto base to get total height
                     int dp = baseHeight + heightsDP.get(current);
