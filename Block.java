@@ -7,12 +7,14 @@ public class Block {
     private int d1;
     private int d2;
     private int height;
+    private Block maxBlock;
     private int hashCode; 
 
     public Block(ArrayList<Integer> dims) {
         d1 = dims.get(0);
         d2 = dims.get(1);
         height = dims.get(2);
+        maxBlock = this;
         hashCode = dims.hashCode();
     }
 
@@ -26,6 +28,14 @@ public class Block {
 
     public int getHeight() {
         return height;
+    }
+
+    public void setMaxBlock(Block max) {
+        maxBlock = max;
+    }
+
+    public Block getMaxBlock() {
+        return maxBlock;
     }
 
     @Override

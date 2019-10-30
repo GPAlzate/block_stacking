@@ -1,5 +1,8 @@
 import java.io.File;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 import java.util.HashMap;
 import java.util.Collections;
@@ -8,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class BlockStacking {
-    
+
     /** number of types of blocks */
     int n;
 
@@ -21,9 +24,13 @@ public class BlockStacking {
      */
     HashMap<Block, Integer> heightsDP;
 
-    public BlockStacking(File input) {
+    int maxHeight;
+    Block maxBlock;
+
+    public BlockStacking(File input, File output) {
         blocks = new ArrayList<Block>();
         heightsDP = new HashMap<Block, Integer>();
+        maxHeight = 0;
         generate(input);
     }
 
@@ -32,7 +39,7 @@ public class BlockStacking {
      * our stack. Also sorts them by the 1st face dimension so we can iterate
      * through the blocks from smallest to largest so `stackBlocks()` can
      * calculate maximum heights using the optimal solution for every base block.
-     * 
+     *
      * @param input the file containing all the different types of blocks
      */
     private void generate(File input) {
@@ -64,7 +71,7 @@ public class BlockStacking {
                 // smallest dimension of the block goes first for easy comparison
                 // later
                 Collections.sort(dims);
-                
+
                 // put all rotations of block, assigning initial stack height to
                 // its own height
                 Block block = new Block(dims);
@@ -85,14 +92,13 @@ public class BlockStacking {
             blocks = new ArrayList<Block>(heightsDP.keySet());
             Collections.sort(blocks, new Block.sortByD1());
 
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-  
-    private int stackBlocks(){
+
+    private void stackBlocks(){
 
         // vbls to save lists: `base` holds the working base block, while
         // `current` holds the blocks we're stacking on top of the base
@@ -101,6 +107,7 @@ public class BlockStacking {
         // saves the maximum stack height
         int globalMax = -1;
 
+        Block globalMaxBlock = null;
         for(int i = 0; i < blocks.size(); i++){
 
             // iterate through the blocks if we were to use them as the base
@@ -111,43 +118,79 @@ public class BlockStacking {
 
             // calculate maximum height using the current base
             int localMax = baseHeight;
+
+            Block localMaxBlock = base;
             for(int j = 0; j < i; j++){
 
                 // placing current on top of base
                 current = blocks.get(j);
 
                 // can only place if length & width are smaller than those of base
-                if(current.getD1() < base.getD1() && 
+                if(current.getD1() < base.getD1() &&
                         current.getD2() < base.getD2()){
 
                     // stack the substacks onto base to get total height
                     int dp = baseHeight + heightsDP.get(current);
 
                     // we can add the block to the base, so we accumulate height
-                    if(dp > localMax)
+                    if(dp > localMax) {
+                        localMaxBlock = current;
                         localMax = dp;
-
+                    }
                 }
             }
 
             // update the maximum height of the base used
             heightsDP.put(base, localMax);
+            base.setMaxBlock(localMaxBlock);
 
             // if we find a new tallest stack, replace it
-            if(localMax > globalMax)
+            if(localMax > globalMax) {
                 globalMax = localMax;
+                globalMaxBlock = base;
+            }
         }
 
-        return globalMax;
+        
+        maxHeight = globalMax;
+        maxBlock = globalMaxBlock;
+
+    }
+
+    public void outputBlocks(File output) {
+        ArrayList<String> stack = new ArrayList<String>();
+        
+        Block block = maxBlock;
+
+        System.out.println(block);
+        System.out.println(maxHeight);
+
+        stack.add(block.toString() + "\n");
+        while(block.getMaxBlock() != block) {
+            stack.add(block.getMaxBlock().toString() + "\n");
+            block = block.getMaxBlock();
+        }
+        System.out.println(stack);
+
+        try {
+            FileWriter fw = new FileWriter(output);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(stack.size() + "\n");
+            for (String s : stack) 
+                bw.write(s);
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
     public static void main(String[] args) {
         File input = new File(args[0]);
-        BlockStacking test = new BlockStacking(input);
-        System.out.println(test.blocks.toString());
-        System.out.println(test.stackBlocks());
-        System.out.println(test.heightsDP.toString());
+        File output = new File(args[1]);
+        BlockStacking test = new BlockStacking(input, output);
+        test.stackBlocks();
+        test.outputBlocks(output);
     }
 
 }
