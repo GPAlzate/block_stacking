@@ -16,8 +16,7 @@ public class Block {
     private int d1;
     private int d2;
     private int height;
-    /** stores which block this should be stacked 
-        underneath to obtain the maximum height */
+    /** stores the block above this one in the optimal solution */
     private Block maxBlock; 
     private int hashCode; 
 
