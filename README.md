@@ -37,6 +37,6 @@ You can run the program through the command line:
 
 ```sh
 $ javac *.java
-$ java BlockStacking input.txt
+$ java BlockStacking input.txt output.txt
 ```
 
