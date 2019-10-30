@@ -12,37 +12,51 @@ import java.util.Comparator;
 
 /**
  * Class that solves the block stacking problem. The algorithm is as follows:
- * 
+ *
  *      - First generate all rotations for each block. We store them in a HashMap
- *      that maps every block orientation to what will eventually be the maximum
- *      height of the block tower with some block rotation `i` as the base.
- * 
+ *        that maps every block orientation to what will eventually be the maximum
+ *        height of the block tower with some block rotation `i` as the base.
+ *
  *      - For every block rotation, sort the dimensions such that the shortest
- *      side is the first dimension value.
- * 
+ *        side is the first dimension value.
+ *
  *      - We then sort the entire list of block rotations by the first (i.e. the
- *      shortest) dimension.
- * 
+ *        shortest) dimension.
+ *
  *      - What we now have is a sorted list of blocks, and a mapping from each
- *      block `i` to the maximum height tower given blocks 0, 1, ..., i. Suppose
- *      we With this,
- *      TODO:
- * 
+ *        block `i` to the maximum height tower given blocks 0, 1, ..., i. Then,
+ *        we can obtain the maximum possible height with the recurrence relation
+ *
+ *          stackHeight(i) = maximum height of the tower with block `i` as the base
+ *          stackHeight(i) = - 0                                if i = 0
+ *                           - height[i] + max(stackHeight(j))  otherwise
+ *
+ *        where the max is taken over all j < i such that the jth block can be
+ *        stacked upon the ith block (i.e. block `j`'s base is strictly smaller
+ *        than block `i`'s base).
+ *
+ *      - In order to reconstruct the solution, for each block `i`, we store a pointer
+ *        to the block that produces the maximum height when it is stacked upon block `i`.
+ *        The solution can be reconstructed by following the pointers back from the block
+ *        that gives the overall maximum height tower.
+ *
  * Running time:
- * 
+ *
  *      - We create 3n different block orientations (in the worst case) and then
- *      sort them, which takes Θ(n*log(n)) time.
- * 
+ *        sort them, which takes Θ(n*log(n)) time.
+ *
  *      - We find the maximum block tower height in Θ(n^2) time. This is because
- *      for every block `i,` we find the maximum block tower height among blocks
- *      0, ..., i. The number of operations is therefore ∑i from 0 to 3n,
- *      which is in Θ(n^2). We have a tight bound because for every block before
- *      `i` in the sorted list, we have to compare the dimensions to see if the
- *      block is stackable.
- * 
- *      - Thus, the entire algorithm runs in Θ(n*log(n) + n^2) ∈ Θ(n^2). 
- *      
- * 
+ *        for every block `i,` we find the maximum block tower height among blocks
+ *        0, ..., i. The number of operations is therefore ∑i from 0 to 3n,
+ *        which is in Θ(n^2). We have a tight bound because for every block before
+ *        `i` in the sorted list, we have to compare the dimensions to see if the
+ *        block is stackable.
+ *
+ *      - Thus, the entire algorithm runs in Θ(n*log(n) + n^2) ∈ Θ(n^2).
+ *
+ * @authors Gabriel Alzate and Janice Lee
+ * @date October 30th 2019
+ *
  */
 public class BlockStacking {
 
@@ -58,9 +72,19 @@ public class BlockStacking {
      */
     HashMap<Block, Integer> stackHeight;
 
+    /** max height of the tower */
     int maxHeight;
-    Block maxBlock;
 
+    /** base of the max height tower */
+    Block maxBase;
+
+    /**
+     * Initializes a BlockStacking object and reads in the
+     * block information from the input file
+     *
+     * @params input  the file containing the types of blocks
+     *         output the file to which the soln should be written
+     */
     public BlockStacking(File input, File output) {
         blocks = new ArrayList<Block>();
         stackHeight = new HashMap<Block, Integer>();
@@ -132,6 +156,13 @@ public class BlockStacking {
     }
 
 
+    /**
+     * Finds the maximum possible height of the tower, as well as the 
+     * base block for the maximum height tower. Goes through every block
+     * and calculates the maximum height of the tower using that block
+     * as the base, then memoizes the max height for each block so that
+     * the value for a block does not have to be recalculated. 
+     */
     private void stackBlocks(){
 
         // vbls to save lists: `base` holds the working base block, while
@@ -141,7 +172,8 @@ public class BlockStacking {
         // saves the maximum stack height
         int globalMax = -1;
 
-        Block globalMaxBlock = null;
+        // saves the base block for the maximum stack height
+        Block globalMaxBase = null;
         for(int i = 0; i < blocks.size(); i++){
 
             // iterate through the blocks if we were to use them as the base
@@ -153,7 +185,7 @@ public class BlockStacking {
             // calculate maximum height using the current base
             int localMax = baseHeight;
 
-            Block localMaxBlock = base;
+            Block localMaxBase = base;
             for(int j = 0; j < i; j++){
 
                 // placing current on top of base
@@ -168,51 +200,70 @@ public class BlockStacking {
 
                     // we can add the block to the base, so we accumulate height
                     if(dp > localMax) {
-                        localMaxBlock = current;
+                        localMaxBase = current;
                         localMax = dp;
                     }
                 }
             }
 
-            // update the maximum height of the base used
+            // update the maximum height and block of the base used
             stackHeight.put(base, localMax);
-            base.setMaxBlock(localMaxBlock);
+            base.setMaxBlock(localMaxBase);
 
             // if we find a new tallest stack, replace it
             if(localMax > globalMax) {
                 globalMax = localMax;
-                globalMaxBlock = base;
+                globalMaxBase = base;
             }
         }
 
-        
         maxHeight = globalMax;
-        maxBlock = globalMaxBlock;
+        maxBase = globalMaxBase;
 
     }
 
+    /**
+     * Reconstructs the solution from the base of the maximum tower,
+     * prints out information about the tallest tower, and then
+     * writes the reconstructed solution to an output file.
+     *
+     * @params output: the file where the solution should be written
+     */ 
     public void outputBlocks(File output) {
+
+        // holds the blocks that form the maximum tower 
         ArrayList<String> stack = new ArrayList<String>();
-        
-        Block block = maxBlock;
 
-        System.out.println(block);
-        System.out.println(maxHeight);
+        Block block = maxBase;
 
+        // follow the pointers back to the top of the tower
         stack.add(block.toString() + "\n");
         while(block.getMaxBlock() != block) {
             stack.add(block.getMaxBlock().toString() + "\n");
             block = block.getMaxBlock();
         }
-        System.out.println(stack);
 
+        // print out info about the tallest tower
+        System.out.println("The tallest tower has "
+                           + stack.size()
+                           + " blocks and a height of "
+                           + maxHeight);
+
+        // write the solution to the output file
         try {
+            
             FileWriter fw = new FileWriter(output);
             BufferedWriter bw = new BufferedWriter(fw);
+
+            // write the number of blocks in the tower
             bw.write(stack.size() + "\n");
-            for (String s : stack) 
+
+            // write the blocks in the tower
+            for (String s : stack)
                 bw.write(s);
+
             bw.close();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -222,9 +273,9 @@ public class BlockStacking {
     public static void main(String[] args) {
         File input = new File(args[0]);
         File output = new File(args[1]);
-        BlockStacking test = new BlockStacking(input, output);
-        test.stackBlocks();
-        test.outputBlocks(output);
+        BlockStacking stack = new BlockStacking(input, output);
+        stack.stackBlocks();
+        stack.outputBlocks(output);
     }
 
 }

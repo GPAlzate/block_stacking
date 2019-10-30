@@ -2,6 +2,15 @@ import java.lang.Object;
 import java.util.Comparator;
 import java.util.ArrayList;
 
+/**
+ * Class that represents a three-dimensional rectangular block.
+
+ * A block has two base dimensions and a height. It also has a pointer
+ * to the block that produces the maximum height when stacked upon this block.
+ *
+ * @authors Gabriel Alzate and Janice Lee
+ * @date October 30th, 2019
+ */ 
 public class Block {
 
     private int d1;
