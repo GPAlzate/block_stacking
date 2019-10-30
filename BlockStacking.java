@@ -10,6 +10,40 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
 
+/**
+ * Class that solves the block stacking problem. The algorithm is as follows:
+ * 
+ *      - First generate all rotations for each block. We store them in a HashMap
+ *      that maps every block orientation to what will eventually be the maximum
+ *      height of the block tower with some block rotation `i` as the base.
+ * 
+ *      - For every block rotation, sort the dimensions such that the shortest
+ *      side is the first dimension value.
+ * 
+ *      - We then sort the entire list of block rotations by the first (i.e. the
+ *      shortest) dimension.
+ * 
+ *      - What we now have is a sorted list of blocks, and a mapping from each
+ *      block `i` to the maximum height tower given blocks 0, 1, ..., i. Suppose
+ *      we With this,
+ *      TODO:
+ * 
+ * Running time:
+ * 
+ *      - We create 3n different block orientations (in the worst case) and then
+ *      sort them, which takes Θ(n*log(n)) time.
+ * 
+ *      - We find the maximum block tower height in Θ(n^2) time. This is because
+ *      for every block `i,` we find the maximum block tower height among blocks
+ *      0, ..., i. The number of operations is therefore ∑i from 0 to 3n,
+ *      which is in Θ(n^2). We have a tight bound because for every block before
+ *      `i` in the sorted list, we have to compare the dimensions to see if the
+ *      block is stackable.
+ * 
+ *      - Thus, the entire algorithm runs in Θ(n*log(n) + n^2) ∈ Θ(n^2). 
+ *      
+ * 
+ */
 public class BlockStacking {
 
     /** number of types of blocks */
@@ -19,17 +53,17 @@ public class BlockStacking {
     ArrayList<Block> blocks;
 
     /**
-     * dp table where heightsDP(i) is the maximum block stacking height if we
+     * dp table where stackHeight(i) is the maximum block stacking height if we
      * use base i
      */
-    HashMap<Block, Integer> heightsDP;
+    HashMap<Block, Integer> stackHeight;
 
     int maxHeight;
     Block maxBlock;
 
     public BlockStacking(File input, File output) {
         blocks = new ArrayList<Block>();
-        heightsDP = new HashMap<Block, Integer>();
+        stackHeight = new HashMap<Block, Integer>();
         maxHeight = 0;
         generate(input);
     }
@@ -75,21 +109,21 @@ public class BlockStacking {
                 // put all rotations of block, assigning initial stack height to
                 // its own height
                 Block block = new Block(dims);
-                heightsDP.put(block, block.getHeight());
+                stackHeight.put(block, block.getHeight());
 
                 dims.add(1, dims.remove(2));
                 block = new Block(dims);
-                heightsDP.put(block, block.getHeight());
+                stackHeight.put(block, block.getHeight());
 
                 dims.add(0, dims.remove(2));
                 dims.add(1, dims.remove(2));
                 block = new Block(dims);
-                heightsDP.put(block, block.getHeight());
+                stackHeight.put(block, block.getHeight());
 
             }
 
             // create the sorted list of blocks
-            blocks = new ArrayList<Block>(heightsDP.keySet());
+            blocks = new ArrayList<Block>(stackHeight.keySet());
             Collections.sort(blocks, new Block.sortByD1());
 
         } catch (FileNotFoundException e) {
@@ -129,8 +163,8 @@ public class BlockStacking {
                 if(current.getD1() < base.getD1() &&
                         current.getD2() < base.getD2()){
 
-                    // stack the substacks onto base to get total height
-                    int dp = baseHeight + heightsDP.get(current);
+                    // stack the sub-twoers onto base to get total height
+                    int dp = baseHeight + stackHeight.get(current);
 
                     // we can add the block to the base, so we accumulate height
                     if(dp > localMax) {
@@ -141,7 +175,7 @@ public class BlockStacking {
             }
 
             // update the maximum height of the base used
-            heightsDP.put(base, localMax);
+            stackHeight.put(base, localMax);
             base.setMaxBlock(localMaxBlock);
 
             // if we find a new tallest stack, replace it
