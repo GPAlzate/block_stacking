@@ -24,7 +24,7 @@ This file structures a `Block` class that contains
 
 The first line of this file contains the number of different block types and
 the different blocks represented by their own dimensions, length-by-width-by-height.
-Here is what it looks like:
+Here is what an example input.txt looks like:
 
 ```sh
 3
